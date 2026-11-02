@@ -29,6 +29,19 @@ jobs:
         run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0"
       - name: Test, lint, and build
         run: gradle --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug
+      - name: Verify APK metadata and signature
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('app/build/outputs/apk/debug/app-debug.apk') as apk:
+              entry = apk.read('META-INF/xposed/java_init.list').decode().strip()
+              assert entry == 'io.github.takattowo.usercabridge.UserCABridge'
+              properties = apk.read('META-INF/xposed/module.prop').decode()
+              assert 'minApiVersion=102' in properties
+              assert 'staticScope=false' in properties
+              assert any(name.endswith('.dex') for name in apk.namelist())
+          PY
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify app/build/outputs/apk/debug/app-debug.apk
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
