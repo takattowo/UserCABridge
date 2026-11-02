@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">UserCA Bridge</string>
+    <string name="module_description">Include user CAs in Android framework default trust. No certificate-file changes or pinning bypass.</string>
+</resources>
