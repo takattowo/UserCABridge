@@ -8,15 +8,6 @@ Small LSPosed module that includes Android's existing user-installed CA source a
 - LSPosed-compatible framework implementing **modern libxposed API 102**. Older legacy/API-100 builds are not supported.
 - User CA installed through Android Settings in the same Android user/profile as the target app.
 
-## Install and scope
-
-1. Install the debug APK from GitHub Actions.
-2. Enable **UserCA Bridge** in LSPosed.
-3. Select every app you want affected. You can additionally select **System Framework** for supported framework-process configurations.
-4. Restart selected apps; reboot if System Framework is selected.
-
-**Selecting only System Framework does not affect all apps.** API 102 loads modules in scoped processes, not zygote. This module hooks the same Android framework API independently in each scoped process, without app-specific/Chrome hooks. It has no launcher/settings screen.
-
 ## What changes
 
 After Android's original `NetworkSecurityConfig.getDefaultBuilder` runs, the module adds `UserCertificateSource` if absent. Before adding a new source, it checks that Android can enumerate its certificates; a read failure leaves the original builder unchanged. Method parameters are discovered at runtime, not assumed. Known AOSP constructors are checked against the Android version:
@@ -33,20 +24,6 @@ New references use `overridesPins=false` and, when present, `disableCT=false`. S
 - Trusting a user CA permits its holder to issue certificates accepted by affected apps. Only install CAs you control/trust, and limit LSPosed scope accordingly.
 - AdGuard's “installed in system store” status remains unchanged. This module does not hook AdGuard's checks, activate its HTTPS filtering, route traffic, or guarantee interception. Modern Chrome already has a separate user-root trust path.
 - User-store certificates are all included, not only AdGuard's certificate. Android's usual per-profile access and trust-storage updates apply.
-
-## Remote build and download
-
-No local build required. Open [Build debug APK](https://github.com/takattowo/UserCABridge/actions/workflows/build.yml), select **Run workflow**, then download **UserCA-Bridge-debug** from the successful run's artifacts. Pushes to `main` and pull requests also run checks.
-
-GitHub Actions installs JDK 17, Gradle 9.4.1, SDK 37 and build tools 36.0.0, then runs:
-
-```sh
-gradle --no-daemon --stacktrace testDebugUnitTest lintDebug assembleDebug
-```
-
-The published libxposed 102.0.0 AAR requires `compileSdk=37`; that is a build dependency, not a claim of Android 17 runtime support. AGP is pinned to 9.2.1.
-
-**No signing secret needed.** Android's debug signing key is generated on the runner. Fresh runners can generate different keys: uninstall the previous debug APK before installing a new artifact if Android reports incompatible signatures. This also resets LSPosed module scope; select it again. APK output: `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Verify on device
 
