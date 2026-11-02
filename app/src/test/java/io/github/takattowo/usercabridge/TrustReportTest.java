@@ -19,6 +19,16 @@ public class TrustReportTest {
     }
 
     @Test
+    public void reportMatchesExactProcessIdentity() {
+        assertTrue(report().matchesProcess(10123, 421, "org.example.app:network"));
+    }
+
+    @Test
+    public void reportDoesNotMatchDifferentProcessIdentity() {
+        assertFalse(report().matchesProcess(10123, 422, "org.example.app:network"));
+    }
+
+    @Test
     public void differentUidDoesNotMatchReport() {
         assertFalse(report().isLiveFor(10124, 421, "org.example.app:network", true));
     }
