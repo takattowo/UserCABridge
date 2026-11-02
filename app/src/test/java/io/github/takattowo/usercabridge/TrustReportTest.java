@@ -1,6 +1,7 @@
 package io.github.takattowo.usercabridge;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -46,6 +47,28 @@ public class TrustReportTest {
     @Test
     public void positiveCertificateCountReportsInstalledUserCas() {
         assertTrue(report().hasInstalledUserCAs());
+    }
+
+    @Test
+    public void reportHasStableStorageEncoding() {
+        assertEquals("10123|org.example.app:network", report().storageKey());
+        assertEquals("421|true|1|1700000000000", report().encode());
+    }
+
+    @Test
+    public void storedReportRoundTripsIdentityAndTrustResult() {
+        TrustReport restored = TrustReport.decode(
+                "10123|org.example.app:network", "421|true|1|1700000000000");
+
+        assertTrue(restored.isLiveFor(10123, 421, "org.example.app:network", true));
+        assertTrue(restored.hasInstalledUserCAs());
+        assertTrue(restored.timestampMillis == 1_700_000_000_000L);
+    }
+
+    @Test
+    public void malformedStoredReportIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> TrustReport.decode("not-a-uid|org.example.app", "bad"));
     }
 
     @Test
