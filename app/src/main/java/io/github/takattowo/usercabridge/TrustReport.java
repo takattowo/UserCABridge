@@ -25,8 +25,11 @@ final class TrustReport {
 
     boolean isLiveFor(int targetUid, int targetPid, String targetProcessName,
             boolean targetUpToDate) {
-        return targetUpToDate && uid == targetUid && pid == targetPid
-                && processName.equals(targetProcessName);
+        return targetUpToDate && matchesProcess(targetUid, targetPid, targetProcessName);
+    }
+
+    boolean matchesProcess(int targetUid, int targetPid, String targetProcessName) {
+        return uid == targetUid && pid == targetPid && processName.equals(targetProcessName);
     }
 
     boolean hasInstalledUserCAs() {
