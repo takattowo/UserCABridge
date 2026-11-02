@@ -1,5 +1,7 @@
 package io.github.takattowo.usercabridge;
 
+import android.app.Application;
+import android.content.Context;
 import android.os.Build;
 import android.util.Log;
 
@@ -12,12 +14,16 @@ import io.github.libxposed.api.XposedModule;
 public final class UserCABridge extends XposedModule {
     private static final String TAG = "UserCA Bridge";
     private static final String PREFIX = "android.security.net.config.";
+    private volatile Context processContext;
+    private String processName;
 
     @Override
     public void onModuleLoaded(ModuleLoadedParam param) {
-        log(Log.INFO, TAG, "Process=" + param.getProcessName() + " Android API="
+        processName = param.getProcessName();
+        log(Log.INFO, TAG, "Process=" + processName + " Android API="
                 + Build.VERSION.SDK_INT + " Xposed API=" + getApiVersion());
         try {
+            hookApplicationAttach();
             FrameworkTrust trust = FrameworkTrust.resolve(
                     frameworkClass("NetworkSecurityConfig"),
                     frameworkClass("NetworkSecurityConfig$Builder"),
@@ -37,8 +43,9 @@ public final class UserCABridge extends XposedModule {
                             log(Log.INFO, TAG, "Default trust executed; user source="
                                     + (added ? "appended" : "already present"));
                             try {
-                                log(Log.INFO, TAG, "User certificates loaded="
-                                        + trust.getUserCertificateCount());
+                                int count = trust.getUserCertificateCount();
+                                log(Log.INFO, TAG, "User certificates loaded=" + count);
+                                reportTrustStatus(count);
                             } catch (Throwable error) {
                                 log(Log.WARN, TAG, "Cannot enumerate user certificates", error);
                             }
@@ -59,6 +66,35 @@ public final class UserCABridge extends XposedModule {
             }
         } catch (Throwable error) {
             log(Log.WARN, TAG, "Unsupported framework; trust unchanged", error);
+        }
+    }
+
+    private void hookApplicationAttach() {
+        try {
+            Method attach = Application.class.getDeclaredMethod("attach", Context.class);
+            hook(attach).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
+                Object baseContext = chain.getArg(0);
+                Object result = chain.proceed();
+                if (baseContext instanceof Context) {
+                    processContext = (Context) baseContext;
+                }
+                return result;
+            });
+        } catch (Throwable error) {
+            log(Log.WARN, TAG, "Cannot hook Application.attach; trust reports unavailable", error);
+        }
+    }
+
+    private void reportTrustStatus(int userCertificateCount) {
+        Context context = processContext;
+        if (context == null) {
+            log(Log.WARN, TAG, "Application context unavailable; trust report not sent");
+            return;
+        }
+        try {
+            StatusReports.report(context, processName, userCertificateCount);
+        } catch (Throwable error) {
+            log(Log.WARN, TAG, "Cannot send trust report", error);
         }
     }
 

@@ -1,4 +1,10 @@
 <resources>
     <string name="app_name">UserCA Bridge</string>
     <string name="module_description">Include user CAs in Android framework default trust. No certificate-file changes or pinning bypass.</string>
+    <string name="status_title">UserCA Bridge status</string>
+    <string name="status_refresh">Refresh</string>
+    <string name="status_refreshing">Checking status…</string>
+    <string name="status_user_ca_count">Installed user CAs: %1$d</string>
+    <string name="status_user_ca_count_unavailable">Installed user CAs: unavailable</string>
+    <string name="status_scope_note">Reports describe Android default trust configuration only. They do not prove a TLS handshake, pinning outcome, or AdGuard interception.</string>
 </resources>
