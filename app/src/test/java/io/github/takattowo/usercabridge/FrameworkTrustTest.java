@@ -176,15 +176,14 @@ public class FrameworkTrustTest {
     }
 
     @Test
-    public void readFailureDoesNotRemoveExistingSources() throws Exception {
+    public void unreadableUserSourceDoesNotChangeOriginalBuilder() throws Exception {
         FrameworkTrust trust = FrameworkTrust.resolve(Config2.class, Builder2.class,
                 BrokenSource.class, Source.class, Entry2.class, 35);
         Builder2 builder = new Builder2();
         Entry2 system = new Entry2(HashSet::new, false);
         builder.refs.add(system);
-        assertTrue(trust.addUserSource(builder));
-        assertThrows(InvocationTargetException.class, trust::getUserCertificateCount);
+        assertThrows(InvocationTargetException.class, () -> trust.addUserSource(builder));
         assertSame(system, builder.refs.get(0));
-        assertEquals(2, builder.refs.size());
+        assertEquals(1, builder.refs.size());
     }
 }
