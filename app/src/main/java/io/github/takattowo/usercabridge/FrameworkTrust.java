@@ -115,6 +115,8 @@ final class FrameworkTrust {
                 }
             }
         }
+        // Reject an unreadable new source before it can break later framework trust loading.
+        getUserCertificateCount();
         // false preserves pins and, on Android 16, existing CT requirements.
         Object reference = referenceConstructor.getParameterCount() == 2
                 ? referenceConstructor.newInstance(userSource, false)

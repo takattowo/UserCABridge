@@ -19,7 +19,7 @@ Small LSPosed module that includes Android's existing user-installed CA source a
 
 ## What changes
 
-After Android's original `NetworkSecurityConfig.getDefaultBuilder` runs, the module adds `UserCertificateSource` if absent. Method parameters are discovered at runtime, not assumed. Known AOSP constructors are checked against the Android version:
+After Android's original `NetworkSecurityConfig.getDefaultBuilder` runs, the module adds `UserCertificateSource` if absent. Before adding a new source, it checks that Android can enumerate its certificates; a read failure leaves the original builder unchanged. Method parameters are discovered at runtime, not assumed. Known AOSP constructors are checked against the Android version:
 
 - API 26–35: `(CertificateSource, boolean overridesPins)`.
 - API 36: additionally `boolean disableCT`.
