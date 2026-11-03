@@ -16,10 +16,7 @@ public final class TrustReportProvider extends ContentProvider {
 
     @Override
     public Bundle call(String method, String arg, Bundle extras) {
-        if (!StatusReports.METHOD_REPORT.equals(method) || extras == null
-                || !extras.containsKey(StatusReports.EXTRA_PROCESS_NAME)
-                || !extras.containsKey(StatusReports.EXTRA_USER_SOURCE_PRESENT)
-                || !extras.containsKey(StatusReports.EXTRA_USER_CERTIFICATE_COUNT)) {
+        if (extras == null) {
             return null;
         }
         Context context = getContext();
@@ -27,12 +24,35 @@ public final class TrustReportProvider extends ContentProvider {
             return null;
         }
         try {
-            TrustReport report = new TrustReport(Binder.getCallingUid(), Binder.getCallingPid(),
-                    extras.getString(StatusReports.EXTRA_PROCESS_NAME),
-                    extras.getBoolean(StatusReports.EXTRA_USER_SOURCE_PRESENT),
-                    extras.getInt(StatusReports.EXTRA_USER_CERTIFICATE_COUNT),
-                    System.currentTimeMillis());
-            StatusReports.store(context, report);
+            if (StatusReports.METHOD_REPORT.equals(method)) {
+                if (!extras.containsKey(StatusReports.EXTRA_PROCESS_NAME)
+                        || !extras.containsKey(StatusReports.EXTRA_USER_SOURCE_PRESENT)
+                        || !extras.containsKey(StatusReports.EXTRA_USER_CERTIFICATE_COUNT)) {
+                    return null;
+                }
+                TrustReport report = new TrustReport(Binder.getCallingUid(), Binder.getCallingPid(),
+                        extras.getString(StatusReports.EXTRA_PROCESS_NAME),
+                        extras.getBoolean(StatusReports.EXTRA_USER_SOURCE_PRESENT),
+                        extras.getInt(StatusReports.EXTRA_USER_CERTIFICATE_COUNT),
+                        System.currentTimeMillis());
+                StatusReports.store(context, report);
+            } else if (StatusReports.METHOD_REPORT_HOOK_SETUP.equals(method)) {
+                if (!extras.containsKey(StatusReports.EXTRA_PROCESS_NAME)
+                        || !extras.containsKey(StatusReports.EXTRA_FRAMEWORK_SUPPORTED)
+                        || !extras.containsKey(StatusReports.EXTRA_SUPPORTED_FACTORY_COUNT)
+                        || !extras.containsKey(StatusReports.EXTRA_INSTALLED_FACTORY_COUNT)) {
+                    return null;
+                }
+                HookSetupReport report = new HookSetupReport(Binder.getCallingUid(),
+                        Binder.getCallingPid(), extras.getString(StatusReports.EXTRA_PROCESS_NAME),
+                        extras.getBoolean(StatusReports.EXTRA_FRAMEWORK_SUPPORTED),
+                        extras.getInt(StatusReports.EXTRA_SUPPORTED_FACTORY_COUNT),
+                        extras.getInt(StatusReports.EXTRA_INSTALLED_FACTORY_COUNT),
+                        System.currentTimeMillis());
+                StatusReports.store(context, report);
+            } else {
+                return null;
+            }
             Bundle result = new Bundle();
             result.putBoolean(StatusReports.RESULT_STORED, true);
             return result;

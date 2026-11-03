@@ -8,6 +8,7 @@ import android.util.Log;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
+import java.util.List;
 
 import io.github.libxposed.api.XposedModule;
 
@@ -15,13 +16,21 @@ public final class UserCABridge extends XposedModule {
     private static final String TAG = "UserCA Bridge";
     private static final String PREFIX = "android.security.net.config.";
     private volatile Context processContext;
-    private String processName;
+    private volatile String processName;
+    private volatile boolean hookSetupComplete;
+    private boolean frameworkSupported;
+    private int supportedFactoryCount;
+    private int installedFactoryCount;
+    private boolean hookSetupReportSent;
 
     @Override
     public void onModuleLoaded(ModuleLoadedParam param) {
         processName = param.getProcessName();
         log(Log.INFO, TAG, "Process=" + processName + " Android API="
                 + Build.VERSION.SDK_INT + " Xposed API=" + getApiVersion());
+        boolean setupResolved = false;
+        int supported = 0;
+        int installed = 0;
         try {
             hookApplicationAttach();
             FrameworkTrust trust = FrameworkTrust.resolve(
@@ -30,9 +39,11 @@ public final class UserCABridge extends XposedModule {
                     frameworkClass("UserCertificateSource"),
                     frameworkClass("CertificateSource"),
                     frameworkClass("CertificatesEntryRef"), Build.VERSION.SDK_INT);
+            List<Method> factories = trust.getFactoryMethods();
+            supported = factories.size();
+            setupResolved = true;
             log(Log.INFO, TAG, "Runtime reference=" + trust.getReferenceConstructor());
-            int installed = 0;
-            for (Method factory : trust.getFactoryMethods()) {
+            for (Method factory : factories) {
                 log(Log.INFO, TAG, "Runtime factory=" + factory);
                 try {
                     hook(factory).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
@@ -60,12 +71,17 @@ public final class UserCABridge extends XposedModule {
                     log(Log.WARN, TAG, "Cannot hook " + factory, error);
                 }
             }
-            log(installed == 0 ? Log.WARN : Log.INFO, TAG, "Framework hooks installed=" + installed);
-            if (installed > 0) {
-                deoptimizeCallers();
-            }
         } catch (Throwable error) {
-            log(Log.WARN, TAG, "Unsupported framework; trust unchanged", error);
+            log(Log.WARN, TAG, "Framework hook setup could not be resolved", error);
+        }
+        frameworkSupported = setupResolved;
+        supportedFactoryCount = setupResolved ? supported : 0;
+        installedFactoryCount = setupResolved ? installed : 0;
+        hookSetupComplete = true;
+        reportHookSetupIfReady();
+        log(installed == 0 ? Log.WARN : Log.INFO, TAG, "Framework hooks installed=" + installed);
+        if (installed > 0) {
+            deoptimizeCallers();
         }
     }
 
@@ -77,11 +93,26 @@ public final class UserCABridge extends XposedModule {
                 Object result = chain.proceed();
                 if (baseContext instanceof Context) {
                     processContext = (Context) baseContext;
+                    reportHookSetupIfReady();
                 }
                 return result;
             });
         } catch (Throwable error) {
             log(Log.WARN, TAG, "Cannot hook Application.attach; trust reports unavailable", error);
+        }
+    }
+
+    private synchronized void reportHookSetupIfReady() {
+        Context context = processContext;
+        if (!hookSetupComplete || context == null || hookSetupReportSent) {
+            return;
+        }
+        try {
+            StatusReports.reportHookSetup(context, processName, frameworkSupported,
+                    supportedFactoryCount, installedFactoryCount);
+            hookSetupReportSent = true;
+        } catch (Throwable error) {
+            log(Log.WARN, TAG, "Cannot send hook setup report", error);
         }
     }
 

@@ -187,18 +187,31 @@ public final class StatusActivity extends Activity {
         for (TrustReport report : reports) {
             reportsByProcess.put(report.storageKey(), report);
         }
+        List<HookSetupReport> setupReports;
+        try {
+            setupReports = StatusReports.loadHookSetup(this);
+        } catch (RuntimeException error) {
+            text.append("Stored hook setup reports unavailable; setup is unconfirmed.\n");
+            setupReports = new ArrayList<>();
+        }
+        Map<String, HookSetupReport> setupReportsByProcess = new HashMap<>();
+        for (HookSetupReport report : setupReports) {
+            setupReportsByProcess.put(report.storageKey(), report);
+        }
         if (!targetListAvailable) {
             if (!services.isEmpty()) {
                 text.append(api102Available
                         ? "Running targets could not be verified; reports are unconfirmed.\n"
                         : "Service API 102 is required to verify running targets.\n");
             }
+            for (HookSetupReport report : setupReports) {
+                appendHookSetupReport(text, "Unverified hook setup report", report);
+            }
+            for (TrustReport report : reports) {
+                appendReport(text, "Unverified trust report", report);
+            }
             if (reports.isEmpty() && reportsAvailable) {
-                text.append("No trust-hook report yet; waiting for a scoped process.\n");
-            } else {
-                for (TrustReport report : reports) {
-                    appendReport(text, "Unverified report", report);
-                }
+                text.append("No default-trust factory observation has been reported.\n");
             }
             return text.toString();
         }
@@ -217,6 +230,20 @@ public final class StatusActivity extends Activity {
                     .append(target.getUid()).append(", PID ").append(target.getPid())
                     .append(")\nModule state: ").append(target.getState()).append('\n');
 
+            HookSetupReport setupReport = setupReportsByProcess.get(
+                    target.getUid() + "|" + target.getProcessName());
+            if (setupReport != null && !setupReport.matchesProcess(target.getUid(),
+                    target.getPid(), target.getProcessName())) {
+                setupReport = null;
+            }
+            ProcessHookSetupStatus.State setupState = ProcessHookSetupStatus.evaluate(
+                    target.getUid(), target.getPid(), target.getProcessName(),
+                    target.getState() == HookedTarget.State.UP_TO_DATE, setupReport);
+            text.append(describeHookSetup(setupState, setupReport)).append('\n');
+            if (setupReport != null) {
+                appendHookSetupReport(text, "Last hook setup report", setupReport);
+            }
+
             TrustReport report = reportsByProcess.get(
                     target.getUid() + "|" + target.getProcessName());
             if (report != null && !report.matchesProcess(target.getUid(), target.getPid(),
@@ -226,20 +253,27 @@ public final class StatusActivity extends Activity {
             ProcessTrustStatus.State state = ProcessTrustStatus.evaluate(target.getUid(),
                     target.getPid(), target.getProcessName(),
                     target.getState() == HookedTarget.State.UP_TO_DATE, report);
-            text.append(describe(state, report)).append('\n');
+            text.append("Trust observation: ").append(describe(state, report)).append('\n');
             if (report != null) {
                 appendReport(text, "Last report", report);
             }
         }
 
+        for (HookSetupReport report : setupReports) {
+            if (!currentProcesses.contains(processIdentity(report.uid, report.pid,
+                    report.processName))) {
+                appendHookSetupReport(text,
+                        "Historical hook setup report (no matching hooked process)", report);
+            }
+        }
         for (TrustReport report : reports) {
             if (!currentProcesses.contains(processIdentity(report.uid, report.pid,
                     report.processName))) {
                 appendReport(text, "Historical report (no matching hooked process)", report);
             }
         }
-        if (reports.isEmpty() && reportsAvailable) {
-            text.append("No trust-hook report yet; waiting for a scoped process.\n");
+        if (targets.isEmpty() && reports.isEmpty() && reportsAvailable) {
+            text.append("No default-trust factory observation has been reported.\n");
         }
         return text.toString();
     }
@@ -273,6 +307,41 @@ public final class StatusActivity extends Activity {
             default:
                 throw new AssertionError(state);
         }
+    }
+
+    private static String describeHookSetup(ProcessHookSetupStatus.State state,
+            HookSetupReport report) {
+        switch (state) {
+            case STALE_TARGET:
+                return "Hook setup: target is not UP_TO_DATE; report is unconfirmed.";
+            case WAITING_FOR_SETUP_REPORT:
+                return "Hook setup: waiting for per-process report; installation unconfirmed.";
+            case FRAMEWORK_UNSUPPORTED:
+                return "Hook setup: could not resolve supported default-trust factories.";
+            case NO_HOOKS_INSTALLED:
+            case PARTIAL_HOOKS_INSTALLED:
+            case HOOKS_INSTALLED:
+                return "Hook setup: " + report.installedFactoryCount + " of "
+                        + report.supportedFactoryCount
+                        + " supported default-trust factory hooks installed.";
+            default:
+                throw new AssertionError(state);
+        }
+    }
+
+    private static void appendHookSetupReport(StringBuilder text, String label,
+            HookSetupReport report) {
+        text.append(label).append(": ").append(report.processName).append(" (UID ")
+                .append(report.uid).append(", PID ").append(report.pid).append(") — ");
+        if (report.frameworkSupported) {
+            text.append(report.installedFactoryCount).append('/')
+                    .append(report.supportedFactoryCount).append(" hooks installed");
+        } else {
+            text.append("factory resolution unavailable");
+        }
+        text.append(", ")
+                .append(DateFormat.getDateTimeInstance().format(new Date(report.timestampMillis)))
+                .append('\n');
     }
 
     private static void appendReport(StringBuilder text, String label, TrustReport report) {
