@@ -97,9 +97,10 @@ public final class StatusActivity extends Activity {
                 insetRight = insets.getSystemWindowInsetRight();
                 insetBottom = insets.getSystemWindowInsetBottom();
             }
-            StatusContentInsets.Padding padding = StatusContentInsets.add(paddingLeft, paddingTop,
+            StatusContentInsets.Padding contentPadding = StatusContentInsets.add(paddingLeft, paddingTop,
                     paddingRight, paddingBottom, insetLeft, insetTop, insetRight, insetBottom);
-            view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
+            view.setPadding(contentPadding.left, contentPadding.top, contentPadding.right,
+                    contentPadding.bottom);
             return insets;
         });
         scroll.addView(content);
