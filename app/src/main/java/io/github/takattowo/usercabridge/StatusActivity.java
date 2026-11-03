@@ -1,11 +1,14 @@
 package io.github.takattowo.usercabridge;
 
 import android.app.Activity;
+import android.graphics.Insets;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -72,6 +75,33 @@ public final class StatusActivity extends Activity {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
+        int paddingLeft = scroll.getPaddingLeft();
+        int paddingTop = scroll.getPaddingTop();
+        int paddingRight = scroll.getPaddingRight();
+        int paddingBottom = scroll.getPaddingBottom();
+        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            int insetLeft;
+            int insetTop;
+            int insetRight;
+            int insetBottom;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Insets bars = insets.getInsets(WindowInsets.Type.systemBars()
+                        | WindowInsets.Type.displayCutout());
+                insetLeft = bars.left;
+                insetTop = bars.top;
+                insetRight = bars.right;
+                insetBottom = bars.bottom;
+            } else {
+                insetLeft = insets.getSystemWindowInsetLeft();
+                insetTop = insets.getSystemWindowInsetTop();
+                insetRight = insets.getSystemWindowInsetRight();
+                insetBottom = insets.getSystemWindowInsetBottom();
+            }
+            StatusContentInsets.Padding padding = StatusContentInsets.add(paddingLeft, paddingTop,
+                    paddingRight, paddingBottom, insetLeft, insetTop, insetRight, insetBottom);
+            view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
+            return insets;
+        });
         scroll.addView(content);
         setContentView(scroll);
         refresh();

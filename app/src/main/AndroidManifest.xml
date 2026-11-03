@@ -10,7 +10,8 @@
         <activity
             android:name=".StatusActivity"
             android:exported="true"
-            android:label="@string/status_title">
+            android:label="@string/status_title"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
