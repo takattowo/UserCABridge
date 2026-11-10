@@ -24,4 +24,14 @@ public class ScopedReportAccessTest {
         assertFalse(ScopedReportAccess.isScopedPackage("org.example.unscoped", scope));
         assertFalse(ScopedReportAccess.isScopedPackage(null, scope));
     }
+
+    @Test
+    public void systemPackageInScopeWithoutRecordedGrantCannotReport() {
+        StatusReports.setScopedPackages(Collections.singleton("android"));
+        try {
+            assertFalse(StatusReports.isScopedPackage("android"));
+        } finally {
+            StatusReports.setScopedPackages(Collections.emptySet());
+        }
+    }
 }
