@@ -44,7 +44,7 @@ public final class UserCABridgeApp extends Application
         }
     }
 
-    void refreshReportProviderGrants() {
+    synchronized void refreshReportProviderGrants() {
         Set<String> scopedPackages = new HashSet<>();
         for (XposedService service : getServices()) {
             try {
@@ -62,13 +62,20 @@ public final class UserCABridgeApp extends Application
 
         Uri reportUri = StatusReports.reportUri();
         int grantFlags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
-        StatusReports.setScopedPackages(scopedPackages);
-        revokeUriPermission(reportUri, grantFlags);
-        for (String packageName : scopedPackages) {
+        Set<String> packagesToRevoke = StatusReports.updateScopedPackages(scopedPackages);
+        for (String packageName : packagesToRevoke) {
+            try {
+                revokeUriPermission(packageName, reportUri, grantFlags);
+            } catch (RuntimeException ignored) {
+                // Removed packages stay denied by the in-memory scope check.
+            }
+        }
+        for (String packageName : StatusReports.packagesNeedingUriGrant()) {
             try {
                 grantUriPermission(packageName, reportUri, grantFlags);
+                StatusReports.recordUriGrant(packageName);
             } catch (RuntimeException ignored) {
-                // An unavailable scoped package stays unable to report.
+                // A failed grant stays unrecorded and cannot authorize reports.
             }
         }
     }

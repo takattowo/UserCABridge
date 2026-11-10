@@ -27,11 +27,11 @@ public class ScopedReportAccessTest {
 
     @Test
     public void systemPackageInScopeWithoutRecordedGrantCannotReport() {
-        StatusReports.setScopedPackages(Collections.singleton("android"));
+        StatusReports.updateScopedPackages(Collections.singleton("android"));
         try {
-            assertFalse(StatusReports.isScopedPackage("android"));
+            assertFalse(StatusReports.hasReportAccess("android"));
         } finally {
-            StatusReports.setScopedPackages(Collections.emptySet());
+            StatusReports.clearReportProviderAccess();
         }
     }
 }

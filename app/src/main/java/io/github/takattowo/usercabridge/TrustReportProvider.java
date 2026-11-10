@@ -14,6 +14,7 @@ import android.os.IBinder;
 public final class TrustReportProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
+        StatusReports.clearReportProviderAccess();
         return getContext() != null;
     }
 
@@ -32,7 +33,8 @@ public final class TrustReportProvider extends ContentProvider {
         } catch (SecurityException error) {
             return null;
         }
-        if (!StatusReports.isScopedPackage(callingPackage)) {
+        // system_server can pass checkUriPermission without a URI grant.
+        if (!StatusReports.hasReportAccess(callingPackage)) {
             return null;
         }
         int callingUid = Binder.getCallingUid();

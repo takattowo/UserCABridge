@@ -9,9 +9,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,7 +31,7 @@ final class StatusReports {
     private static final String PREFERENCES_NAME = "trust-reports";
     private static final String HOOK_SETUP_PREFERENCES_NAME = "hook-setup-reports";
     private static final LiveProcessReports LIVE_PROCESSES = new LiveProcessReports();
-    private static volatile Set<String> scopedPackages = Collections.emptySet();
+    private static final ScopedReportAccess REPORT_ACCESS = new ScopedReportAccess();
 
     private StatusReports() { }
 
@@ -41,12 +39,24 @@ final class StatusReports {
         return Uri.parse("content://" + AUTHORITY + "/report");
     }
 
-    static void setScopedPackages(Set<String> packages) {
-        scopedPackages = Collections.unmodifiableSet(new HashSet<>(packages));
+    static Set<String> updateScopedPackages(Set<String> packages) {
+        return REPORT_ACCESS.updateScope(packages);
     }
 
-    static boolean isScopedPackage(String packageName) {
-        return ScopedReportAccess.isScopedPackage(packageName, scopedPackages);
+    static Set<String> packagesNeedingUriGrant() {
+        return REPORT_ACCESS.packagesNeedingUriGrant();
+    }
+
+    static void recordUriGrant(String packageName) {
+        REPORT_ACCESS.recordUriGrant(packageName);
+    }
+
+    static boolean hasReportAccess(String packageName) {
+        return REPORT_ACCESS.hasReportAccess(packageName);
+    }
+
+    static void clearReportProviderAccess() {
+        REPORT_ACCESS.clear();
     }
 
     static boolean isProcessLive(int uid, String processName, String processSessionId) {
