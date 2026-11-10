@@ -48,18 +48,21 @@ jobs:
       - name: Verify APK metadata and signature
         run: |
           python3 - <<'PY'
-          import os, subprocess, zipfile
+          import os, re, subprocess, zipfile
           for variant in ('debug', 'release'):
               apk_path = f'app/build/outputs/apk/{variant}/app-{variant}.apk'
               aapt = os.path.join(os.environ['ANDROID_HOME'], 'build-tools', '36.0.0', 'aapt')
               manifest = subprocess.check_output(
                   [aapt, 'dump', 'xmltree', apk_path, 'AndroidManifest.xml'], text=True)
               assert 'StatusActivity' in manifest
-              assert 'TrustReportProvider' in manifest
-              assert 'io.github.takattowo.usercabridge.trustreports' in manifest
-              assert 'android:grantUriPermissions' in manifest and '=true' in manifest
-              assert 'XposedProvider' in manifest
-              assert 'android.permission.INTERACT_ACROSS_USERS' in manifest
+              providers = re.findall(r'(?ms)^[ \t]*E: provider\b.*?(?=^[ \t]*E:|\Z)', manifest)
+              assert any('TrustReportProvider' in item
+                         and 'io.github.takattowo.usercabridge.trustreports' in item
+                         and 'android:grantUriPermissions' in item and '=true' in item
+                         for item in providers)
+              assert any('XposedProvider' in item
+                         and 'android.permission.INTERACT_ACROSS_USERS' in item
+                         for item in providers)
               assert 'android.intent.action.MAIN' in manifest
               assert 'de.robv.android.xposed.category.MODULE_SETTINGS' in manifest
               assert 'android.intent.category.LAUNCHER' not in manifest
