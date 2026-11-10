@@ -12,7 +12,8 @@ final class HookSetupReport {
     HookSetupReport(int uid, int pid, String processName, boolean frameworkSupported,
             int supportedFactoryCount, int installedFactoryCount, long timestampMillis) {
         if (uid < 0 || pid <= 0 || processName == null || processName.trim().isEmpty()
-                || processName.contains("|") || supportedFactoryCount < 0
+                || processName.contains("|") || processName.length() > 256
+                || supportedFactoryCount < 0
                 || installedFactoryCount < 0 || installedFactoryCount > supportedFactoryCount
                 || (frameworkSupported && supportedFactoryCount == 0)
                 || (!frameworkSupported && supportedFactoryCount != 0)

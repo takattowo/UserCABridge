@@ -11,7 +11,8 @@ final class TrustReport {
     TrustReport(int uid, int pid, String processName, boolean userSourcePresent,
             int userCertificateCount, long timestampMillis) {
         if (uid < 0 || pid <= 0 || processName == null || processName.trim().isEmpty()
-                || processName.contains("|") || userCertificateCount < 0
+                || processName.contains("|") || processName.length() > 256
+                || userCertificateCount < 0
                 || (!userSourcePresent && userCertificateCount != 0) || timestampMillis <= 0) {
             throw new IllegalArgumentException("Invalid trust report");
         }
