@@ -4,6 +4,7 @@ final class ProcessTrustStatus {
     enum State {
         STALE_TARGET,
         WAITING_FOR_REPORT,
+        HISTORICAL_REPORT,
         USER_SOURCE_MISSING,
         NO_USER_CAS,
         USER_CA_READY
@@ -12,12 +13,15 @@ final class ProcessTrustStatus {
     private ProcessTrustStatus() { }
 
     static State evaluate(int uid, int pid, String processName, boolean targetUpToDate,
-            TrustReport report) {
+            boolean reportProcessLive, TrustReport report) {
         if (!targetUpToDate) {
             return State.STALE_TARGET;
         }
-        if (report == null || !report.isLiveFor(uid, pid, processName, true)) {
+        if (report == null || !report.matchesProcess(uid, pid, processName)) {
             return State.WAITING_FOR_REPORT;
+        }
+        if (!reportProcessLive) {
+            return State.HISTORICAL_REPORT;
         }
         if (!report.userSourcePresent) {
             return State.USER_SOURCE_MISSING;

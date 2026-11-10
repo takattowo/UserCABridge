@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.IBinder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +24,18 @@ final class StatusReports {
 
     private static final String PREFERENCES_NAME = "trust-reports";
     private static final String HOOK_SETUP_PREFERENCES_NAME = "hook-setup-reports";
+    private static final LiveProcessReports LIVE_PROCESSES = new LiveProcessReports();
 
     private StatusReports() { }
+
+    static boolean isProcessLive(int uid, int pid, String processName) {
+        Object token = LIVE_PROCESSES.tokenFor(processKey(uid, pid, processName));
+        return token instanceof IBinder && ((IBinder) token).isBinderAlive();
+    }
+
+    private static String processKey(int uid, int pid, String processName) {
+        return uid + "|" + pid + "|" + processName;
+    }
 
     static void report(Context context, String processName, int userCertificateCount) {
         Bundle extras = new Bundle();

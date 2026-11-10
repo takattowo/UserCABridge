@@ -4,6 +4,7 @@ final class ProcessHookSetupStatus {
     enum State {
         STALE_TARGET,
         WAITING_FOR_SETUP_REPORT,
+        HISTORICAL_REPORT,
         FRAMEWORK_UNSUPPORTED,
         NO_HOOKS_INSTALLED,
         PARTIAL_HOOKS_INSTALLED,
@@ -13,12 +14,15 @@ final class ProcessHookSetupStatus {
     private ProcessHookSetupStatus() { }
 
     static State evaluate(int uid, int pid, String processName, boolean targetUpToDate,
-            HookSetupReport report) {
+            boolean reportProcessLive, HookSetupReport report) {
         if (!targetUpToDate) {
             return State.STALE_TARGET;
         }
-        if (report == null || !report.isLiveFor(uid, pid, processName, true)) {
+        if (report == null || !report.matchesProcess(uid, pid, processName)) {
             return State.WAITING_FOR_SETUP_REPORT;
+        }
+        if (!reportProcessLive) {
+            return State.HISTORICAL_REPORT;
         }
         if (!report.frameworkSupported) {
             return State.FRAMEWORK_UNSUPPORTED;

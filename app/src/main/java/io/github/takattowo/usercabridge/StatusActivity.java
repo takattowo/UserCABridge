@@ -238,7 +238,9 @@ public final class StatusActivity extends Activity {
             }
             ProcessHookSetupStatus.State setupState = ProcessHookSetupStatus.evaluate(
                     target.getUid(), target.getPid(), target.getProcessName(),
-                    target.getState() == HookedTarget.State.UP_TO_DATE, setupReport);
+                    target.getState() == HookedTarget.State.UP_TO_DATE,
+                    setupReport != null && StatusReports.isProcessLive(setupReport.uid,
+                            setupReport.pid, setupReport.processName), setupReport);
             text.append(describeHookSetup(setupState, setupReport)).append('\n');
             if (setupReport != null) {
                 appendHookSetupReport(text, "Last hook setup report", setupReport);
@@ -252,7 +254,9 @@ public final class StatusActivity extends Activity {
             }
             ProcessTrustStatus.State state = ProcessTrustStatus.evaluate(target.getUid(),
                     target.getPid(), target.getProcessName(),
-                    target.getState() == HookedTarget.State.UP_TO_DATE, report);
+                    target.getState() == HookedTarget.State.UP_TO_DATE,
+                    report != null && StatusReports.isProcessLive(report.uid, report.pid,
+                            report.processName), report);
             text.append("Trust observation: ").append(describe(state, report)).append('\n');
             if (report != null) {
                 appendReport(text, "Last report", report);
@@ -297,6 +301,8 @@ public final class StatusActivity extends Activity {
                 return "Target is not UP_TO_DATE; current trust status is unconfirmed.";
             case WAITING_FOR_REPORT:
                 return "Waiting for a matching trust-hook report; no success inferred.";
+            case HISTORICAL_REPORT:
+                return "Last trust observation is historical; process lifetime is unverified.";
             case USER_SOURCE_MISSING:
                 return "Hook report says user CA source is missing; inclusion is unconfirmed.";
             case NO_USER_CAS:
@@ -316,6 +322,8 @@ public final class StatusActivity extends Activity {
                 return "Hook setup: target is not UP_TO_DATE; report is unconfirmed.";
             case WAITING_FOR_SETUP_REPORT:
                 return "Hook setup: waiting for per-process report; installation unconfirmed.";
+            case HISTORICAL_REPORT:
+                return "Hook setup: last report is historical; process lifetime is unverified.";
             case FRAMEWORK_UNSUPPORTED:
                 return "Hook setup: could not resolve supported default-trust factories.";
             case NO_HOOKS_INSTALLED:
