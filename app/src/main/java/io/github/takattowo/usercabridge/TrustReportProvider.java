@@ -26,6 +26,15 @@ public final class TrustReportProvider extends ContentProvider {
         if (context == null) {
             return null;
         }
+        String callingPackage;
+        try {
+            callingPackage = getCallingPackage();
+        } catch (SecurityException error) {
+            return null;
+        }
+        if (!StatusReports.isScopedPackage(callingPackage)) {
+            return null;
+        }
         int callingUid = Binder.getCallingUid();
         int callingPid = Binder.getCallingPid();
         if (context.checkUriPermission(StatusReports.reportUri(), callingPid, callingUid,

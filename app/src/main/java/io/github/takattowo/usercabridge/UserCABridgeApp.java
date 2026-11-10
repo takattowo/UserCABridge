@@ -49,20 +49,22 @@ public final class UserCABridgeApp extends Application
         for (XposedService service : getServices()) {
             try {
                 if (service.getApiVersion() >= XposedService.API_101) {
-                    scopedPackages.addAll(service.getScope());
+                    for (String packageName : service.getScope()) {
+                        if (packageName != null && !packageName.trim().isEmpty()) {
+                            scopedPackages.add(packageName);
+                        }
+                    }
                 }
             } catch (RuntimeException ignored) {
-                // No provider access is granted when module scope cannot be verified.
+                // Ignore scopes from a service that cannot be verified.
             }
         }
 
         Uri reportUri = StatusReports.reportUri();
         int grantFlags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
+        StatusReports.setScopedPackages(scopedPackages);
         revokeUriPermission(reportUri, grantFlags);
         for (String packageName : scopedPackages) {
-            if (packageName == null || packageName.trim().isEmpty()) {
-                continue;
-            }
             try {
                 grantUriPermission(packageName, reportUri, grantFlags);
             } catch (RuntimeException ignored) {
