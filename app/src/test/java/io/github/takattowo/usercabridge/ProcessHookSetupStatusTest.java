@@ -16,7 +16,17 @@ public class ProcessHookSetupStatusTest {
         assertEquals(ProcessHookSetupStatus.State.WAITING_FOR_SETUP_REPORT,
                 ProcessHookSetupStatus.evaluate(10123, 421, "org.example.app", true, false, null));
         assertEquals(ProcessHookSetupStatus.State.WAITING_FOR_SETUP_REPORT,
-                ProcessHookSetupStatus.evaluate(10123, 422, "org.example.app", true, false,
+                ProcessHookSetupStatus.evaluate(10124, 421, "org.example.app", true, true,
+                        report(true, 1, 1)));
+        assertEquals(ProcessHookSetupStatus.State.WAITING_FOR_SETUP_REPORT,
+                ProcessHookSetupStatus.evaluate(10123, 421, "org.example.other", true, true,
+                        report(true, 1, 1)));
+    }
+
+    @Test
+    public void diagnosticPidMismatchDoesNotRejectLiveSetupReport() {
+        assertEquals(ProcessHookSetupStatus.State.HOOKS_INSTALLED,
+                ProcessHookSetupStatus.evaluate(10123, 422, "org.example.app", true, true,
                         report(true, 1, 1)));
     }
 

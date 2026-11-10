@@ -17,9 +17,19 @@ public class ProcessTrustStatusTest {
     }
 
     @Test
-    public void reportFromAnotherProcessWaitsInsteadOfShowingSuccess() {
+    public void diagnosticPidMismatchDoesNotRejectLiveReport() {
+        assertEquals(ProcessTrustStatus.State.USER_CA_READY,
+                ProcessTrustStatus.evaluate(10123, 422, "org.example.app", true, true,
+                        report(true, 1)));
+    }
+
+    @Test
+    public void uidOrProcessNameMismatchWaitsForMatchingReport() {
         assertEquals(ProcessTrustStatus.State.WAITING_FOR_REPORT,
-                ProcessTrustStatus.evaluate(10123, 422, "org.example.app", true, false,
+                ProcessTrustStatus.evaluate(10124, 421, "org.example.app", true, true,
+                        report(true, 1)));
+        assertEquals(ProcessTrustStatus.State.WAITING_FOR_REPORT,
+                ProcessTrustStatus.evaluate(10123, 421, "org.example.other", true, true,
                         report(true, 1)));
     }
 
