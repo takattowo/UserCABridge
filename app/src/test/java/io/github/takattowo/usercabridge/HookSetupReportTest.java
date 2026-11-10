@@ -61,4 +61,10 @@ public class HookSetupReportTest {
         assertThrows(IllegalArgumentException.class, () -> new HookSetupReport(10123, 421,
                 "org.example.app", true, 0, 0, 1_700_000_000_000L));
     }
+
+    @Test
+    public void excessiveProcessNameIsRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new HookSetupReport(10123, 421,
+                "x".repeat(257), true, 1, 1, 1_700_000_000_000L));
+    }
 }

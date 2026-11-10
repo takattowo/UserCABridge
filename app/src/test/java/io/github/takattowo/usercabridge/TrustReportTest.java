@@ -116,4 +116,10 @@ public class TrustReportTest {
         assertThrows(IllegalArgumentException.class, () -> new TrustReport(10123, 421,
                 "org.example.app", true, 1, 0));
     }
+
+    @Test
+    public void excessiveProcessNameIsRejected() {
+        assertThrows(IllegalArgumentException.class, () -> new TrustReport(10123, 421,
+                "x".repeat(257), true, 1, 1_700_000_000_000L));
+    }
 }
