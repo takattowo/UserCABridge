@@ -57,6 +57,9 @@ jobs:
               assert 'StatusActivity' in manifest
               assert 'TrustReportProvider' in manifest
               assert 'io.github.takattowo.usercabridge.trustreports' in manifest
+              assert 'android:grantUriPermissions' in manifest and '=true' in manifest
+              assert 'io.github.libxposed.service.XposedProvider' in manifest
+              assert 'android.permission.INTERACT_ACROSS_USERS' in manifest
               assert 'android.intent.action.MAIN' in manifest
               assert 'de.robv.android.xposed.category.MODULE_SETTINGS' in manifest
               assert 'android.intent.category.LAUNCHER' not in manifest
