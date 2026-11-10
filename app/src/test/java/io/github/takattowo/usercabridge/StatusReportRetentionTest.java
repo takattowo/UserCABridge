@@ -20,4 +20,15 @@ public class StatusReportRetentionTest {
         assertEquals("older", StatusReportRetention.evictionCandidate(timestamps,
                 "incoming", 2));
     }
+
+    @Test
+    public void oversizedLegacyStoreEvictsEvenWhenUpdatingExistingReport() {
+        Map<String, Long> timestamps = new HashMap<>();
+        timestamps.put("older", 1L);
+        timestamps.put("newer", 2L);
+        timestamps.put("incoming", 3L);
+
+        assertEquals("older", StatusReportRetention.evictionCandidate(timestamps,
+                "incoming", 2));
+    }
 }
