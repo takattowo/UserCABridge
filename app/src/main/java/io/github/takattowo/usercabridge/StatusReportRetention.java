@@ -9,13 +9,16 @@ final class StatusReportRetention {
 
     static String evictionCandidate(Map<String, Long> reportTimestamps, String incomingKey,
             int maximum) {
-        if (reportTimestamps.containsKey(incomingKey) || reportTimestamps.size() < maximum) {
+        int projectedSize = reportTimestamps.size()
+                + (reportTimestamps.containsKey(incomingKey) ? 0 : 1);
+        if (projectedSize <= maximum) {
             return null;
         }
         String oldestKey = null;
         long oldestTimestamp = Long.MAX_VALUE;
         for (Map.Entry<String, Long> entry : reportTimestamps.entrySet()) {
-            if (entry.getValue() < oldestTimestamp) {
+            if (!incomingKey.equals(entry.getKey())
+                    && (oldestKey == null || entry.getValue() < oldestTimestamp)) {
                 oldestKey = entry.getKey();
                 oldestTimestamp = entry.getValue();
             }

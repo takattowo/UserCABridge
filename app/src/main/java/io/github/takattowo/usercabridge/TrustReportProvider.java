@@ -3,10 +3,13 @@ package io.github.takattowo.usercabridge;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.IBinder;
 
 public final class TrustReportProvider extends ContentProvider {
     @Override
@@ -23,32 +26,54 @@ public final class TrustReportProvider extends ContentProvider {
         if (context == null) {
             return null;
         }
+        int callingUid = Binder.getCallingUid();
+        int callingPid = Binder.getCallingPid();
+        if (context.checkUriPermission(StatusReports.reportUri(), callingPid, callingUid,
+                Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        IBinder processToken = extras.getBinder(StatusReports.EXTRA_PROCESS_TOKEN);
+        if (processToken == null) {
+            return null;
+        }
         try {
             if (StatusReports.METHOD_REPORT.equals(method)) {
                 if (!extras.containsKey(StatusReports.EXTRA_PROCESS_NAME)
+                        || !extras.containsKey(StatusReports.EXTRA_PROCESS_SESSION_ID)
                         || !extras.containsKey(StatusReports.EXTRA_USER_SOURCE_PRESENT)
                         || !extras.containsKey(StatusReports.EXTRA_USER_CERTIFICATE_COUNT)) {
                     return null;
                 }
-                TrustReport report = new TrustReport(Binder.getCallingUid(), Binder.getCallingPid(),
+                TrustReport report = new TrustReport(callingUid, callingPid,
                         extras.getString(StatusReports.EXTRA_PROCESS_NAME),
+                        extras.getString(StatusReports.EXTRA_PROCESS_SESSION_ID),
                         extras.getBoolean(StatusReports.EXTRA_USER_SOURCE_PRESENT),
                         extras.getInt(StatusReports.EXTRA_USER_CERTIFICATE_COUNT),
                         System.currentTimeMillis());
+                if (!StatusReports.trackProcess(callingUid, report.processName,
+                        report.processSessionId, processToken)) {
+                    return null;
+                }
                 StatusReports.store(context, report);
             } else if (StatusReports.METHOD_REPORT_HOOK_SETUP.equals(method)) {
                 if (!extras.containsKey(StatusReports.EXTRA_PROCESS_NAME)
+                        || !extras.containsKey(StatusReports.EXTRA_PROCESS_SESSION_ID)
                         || !extras.containsKey(StatusReports.EXTRA_FRAMEWORK_SUPPORTED)
                         || !extras.containsKey(StatusReports.EXTRA_SUPPORTED_FACTORY_COUNT)
                         || !extras.containsKey(StatusReports.EXTRA_INSTALLED_FACTORY_COUNT)) {
                     return null;
                 }
-                HookSetupReport report = new HookSetupReport(Binder.getCallingUid(),
-                        Binder.getCallingPid(), extras.getString(StatusReports.EXTRA_PROCESS_NAME),
+                HookSetupReport report = new HookSetupReport(callingUid, callingPid,
+                        extras.getString(StatusReports.EXTRA_PROCESS_NAME),
+                        extras.getString(StatusReports.EXTRA_PROCESS_SESSION_ID),
                         extras.getBoolean(StatusReports.EXTRA_FRAMEWORK_SUPPORTED),
                         extras.getInt(StatusReports.EXTRA_SUPPORTED_FACTORY_COUNT),
                         extras.getInt(StatusReports.EXTRA_INSTALLED_FACTORY_COUNT),
                         System.currentTimeMillis());
+                if (!StatusReports.trackProcess(callingUid, report.processName,
+                        report.processSessionId, processToken)) {
+                    return null;
+                }
                 StatusReports.store(context, report);
             } else {
                 return null;

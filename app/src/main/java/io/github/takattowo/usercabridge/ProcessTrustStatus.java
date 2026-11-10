@@ -12,12 +12,12 @@ final class ProcessTrustStatus {
 
     private ProcessTrustStatus() { }
 
-    static State evaluate(int uid, int pid, String processName, boolean targetUpToDate,
+    static State evaluate(int uid, String processName, boolean targetUpToDate,
             boolean reportProcessLive, TrustReport report) {
         if (!targetUpToDate) {
             return State.STALE_TARGET;
         }
-        if (report == null || !report.matchesProcess(uid, pid, processName)) {
+        if (report == null || !report.matchesTarget(uid, processName)) {
             return State.WAITING_FOR_REPORT;
         }
         if (!reportProcessLive) {

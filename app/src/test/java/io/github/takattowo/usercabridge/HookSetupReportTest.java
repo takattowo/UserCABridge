@@ -70,9 +70,12 @@ public class HookSetupReportTest {
     }
 
     @Test
-    public void sessionIdCannotBreakReportEncoding() {
+    public void invalidSessionIdIsRejected() {
         assertThrows(IllegalArgumentException.class, () -> new HookSetupReport(10123, 421,
                 "org.example.app", "bad|session", true, 1, 1,
+                1_700_000_000_000L));
+        assertThrows(IllegalArgumentException.class, () -> new HookSetupReport(10123, 421,
+                "org.example.app", "x".repeat(65), true, 1, 1,
                 1_700_000_000_000L));
     }
 }

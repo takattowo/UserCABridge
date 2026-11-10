@@ -147,7 +147,9 @@ public final class StatusActivity extends Activity {
             text.append(getString(R.string.status_user_ca_count_unavailable)).append('\n');
         }
 
-        List<XposedService> services = ((UserCABridgeApp) getApplication()).getServices();
+        UserCABridgeApp application = (UserCABridgeApp) getApplication();
+        application.refreshReportProviderGrants();
+        List<XposedService> services = application.getServices();
         List<HookedTarget> targets = new ArrayList<>();
         boolean api102Available = false;
         boolean targetListAvailable = false;
@@ -221,26 +223,25 @@ public final class StatusActivity extends Activity {
             text.append("No module-loaded target processes currently running.\n");
         }
         for (HookedTarget target : targets) {
-            String identity = processIdentity(target.getUid(), target.getPid(),
-                    target.getProcessName());
+            String identity = processIdentity(target.getUid(), target.getProcessName());
             if (!currentProcesses.add(identity)) {
                 continue;
             }
             text.append('\n').append(target.getProcessName()).append(" (UID ")
-                    .append(target.getUid()).append(", PID ").append(target.getPid())
+                    .append(target.getUid()).append(", diagnostic PID ").append(target.getPid())
                     .append(")\nModule state: ").append(target.getState()).append('\n');
 
             HookSetupReport setupReport = setupReportsByProcess.get(
                     target.getUid() + "|" + target.getProcessName());
-            if (setupReport != null && !setupReport.matchesProcess(target.getUid(),
-                    target.getPid(), target.getProcessName())) {
+            if (setupReport != null && !setupReport.matchesTarget(target.getUid(),
+                    target.getProcessName())) {
                 setupReport = null;
             }
             ProcessHookSetupStatus.State setupState = ProcessHookSetupStatus.evaluate(
-                    target.getUid(), target.getPid(), target.getProcessName(),
+                    target.getUid(), target.getProcessName(),
                     target.getState() == HookedTarget.State.UP_TO_DATE,
                     setupReport != null && StatusReports.isProcessLive(setupReport.uid,
-                            setupReport.pid, setupReport.processName), setupReport);
+                            setupReport.processName, setupReport.processSessionId), setupReport);
             text.append(describeHookSetup(setupState, setupReport)).append('\n');
             if (setupReport != null) {
                 appendHookSetupReport(text, "Last hook setup report", setupReport);
@@ -248,15 +249,15 @@ public final class StatusActivity extends Activity {
 
             TrustReport report = reportsByProcess.get(
                     target.getUid() + "|" + target.getProcessName());
-            if (report != null && !report.matchesProcess(target.getUid(), target.getPid(),
+            if (report != null && !report.matchesTarget(target.getUid(),
                     target.getProcessName())) {
                 report = null;
             }
             ProcessTrustStatus.State state = ProcessTrustStatus.evaluate(target.getUid(),
-                    target.getPid(), target.getProcessName(),
+                    target.getProcessName(),
                     target.getState() == HookedTarget.State.UP_TO_DATE,
-                    report != null && StatusReports.isProcessLive(report.uid, report.pid,
-                            report.processName), report);
+                    report != null && StatusReports.isProcessLive(report.uid,
+                            report.processName, report.processSessionId), report);
             text.append("Trust observation: ").append(describe(state, report)).append('\n');
             if (report != null) {
                 appendReport(text, "Last report", report);
@@ -264,15 +265,13 @@ public final class StatusActivity extends Activity {
         }
 
         for (HookSetupReport report : setupReports) {
-            if (!currentProcesses.contains(processIdentity(report.uid, report.pid,
-                    report.processName))) {
+            if (!currentProcesses.contains(processIdentity(report.uid, report.processName))) {
                 appendHookSetupReport(text,
                         "Historical hook setup report (no matching hooked process)", report);
             }
         }
         for (TrustReport report : reports) {
-            if (!currentProcesses.contains(processIdentity(report.uid, report.pid,
-                    report.processName))) {
+            if (!currentProcesses.contains(processIdentity(report.uid, report.processName))) {
                 appendReport(text, "Historical report (no matching hooked process)", report);
             }
         }
@@ -340,7 +339,7 @@ public final class StatusActivity extends Activity {
     private static void appendHookSetupReport(StringBuilder text, String label,
             HookSetupReport report) {
         text.append(label).append(": ").append(report.processName).append(" (UID ")
-                .append(report.uid).append(", PID ").append(report.pid).append(") — ");
+                .append(report.uid).append(", diagnostic PID ").append(report.pid).append(") — ");
         if (report.frameworkSupported) {
             text.append(report.installedFactoryCount).append('/')
                     .append(report.supportedFactoryCount).append(" hooks installed");
@@ -354,14 +353,14 @@ public final class StatusActivity extends Activity {
 
     private static void appendReport(StringBuilder text, String label, TrustReport report) {
         text.append(label).append(": ").append(report.processName).append(" (UID ")
-                .append(report.uid).append(", PID ").append(report.pid).append(") — ")
+                .append(report.uid).append(", diagnostic PID ").append(report.pid).append(") — ")
                 .append(report.userSourcePresent ? "user source present" : "user source missing")
                 .append(", ").append(report.userCertificateCount).append(" user CAs, ")
                 .append(DateFormat.getDateTimeInstance().format(new Date(report.timestampMillis)))
                 .append('\n');
     }
 
-    private static String processIdentity(int uid, int pid, String processName) {
-        return uid + "|" + pid + "|" + processName;
+    private static String processIdentity(int uid, String processName) {
+        return uid + "|" + processName;
     }
 }

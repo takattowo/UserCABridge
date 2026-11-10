@@ -2,21 +2,26 @@ package io.github.takattowo.usercabridge;
 
 import android.app.Application;
 import android.content.Context;
+import android.os.Binder;
 import android.os.Build;
+import android.os.IBinder;
 import android.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.UUID;
 
 import io.github.libxposed.api.XposedModule;
 
 public final class UserCABridge extends XposedModule {
     private static final String TAG = "UserCA Bridge";
     private static final String PREFIX = "android.security.net.config.";
+    private static final String PROCESS_SESSION_ID = UUID.randomUUID().toString();
     private volatile Context processContext;
     private volatile String processName;
+    private final IBinder processToken = new Binder();
     private volatile boolean hookSetupComplete;
     private boolean frameworkSupported;
     private int supportedFactoryCount;
@@ -109,7 +114,8 @@ public final class UserCABridge extends XposedModule {
         }
         try {
             StatusReports.reportHookSetup(context, processName, frameworkSupported,
-                    supportedFactoryCount, installedFactoryCount);
+                    supportedFactoryCount, installedFactoryCount, PROCESS_SESSION_ID,
+                    processToken);
             hookSetupReportSent = true;
         } catch (Throwable error) {
             log(Log.WARN, TAG, "Cannot send hook setup report", error);
@@ -122,8 +128,10 @@ public final class UserCABridge extends XposedModule {
             log(Log.WARN, TAG, "Application context unavailable; trust report not sent");
             return;
         }
+        reportHookSetupIfReady();
         try {
-            StatusReports.report(context, processName, userCertificateCount);
+            StatusReports.report(context, processName, userCertificateCount, PROCESS_SESSION_ID,
+                    processToken);
         } catch (Throwable error) {
             log(Log.WARN, TAG, "Cannot send trust report", error);
         }

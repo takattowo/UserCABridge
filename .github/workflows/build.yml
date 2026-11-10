@@ -61,6 +61,13 @@ jobs:
               assert trust_provider is not None, f'TrustReportProvider missing: {providers!r}'
               assert 'io.github.takattowo.usercabridge.trustreports' in trust_provider, trust_provider
               assert 'android:grantUriPermissions' in trust_provider and '=true' in trust_provider, trust_provider
+              assert 'android:writePermission' in trust_provider, trust_provider
+              assert 'io.github.takattowo.usercabridge.permission.WRITE_REPORT' in trust_provider, trust_provider
+              permissions = re.findall(r'(?ms)^[ \t]*E: permission\b.*?(?=^[ \t]*E:|\Z)', manifest)
+              report_permission = next((item for item in permissions
+                                        if 'io.github.takattowo.usercabridge.permission.WRITE_REPORT' in item), None)
+              assert report_permission is not None, f'WRITE_REPORT permission missing: {permissions!r}'
+              assert 'android:protectionLevel' in report_permission, report_permission
               xposed_provider = next((item for item in providers
                                       if 'XposedProvider' in item), None)
               assert xposed_provider is not None, f'XposedProvider missing: {providers!r}'
