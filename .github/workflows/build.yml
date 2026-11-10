@@ -56,13 +56,15 @@ jobs:
                   [aapt, 'dump', 'xmltree', apk_path, 'AndroidManifest.xml'], text=True)
               assert 'StatusActivity' in manifest
               providers = re.findall(r'(?ms)^[ \t]*E: provider\b.*?(?=^[ \t]*E:|\Z)', manifest)
-              assert any('TrustReportProvider' in item
-                         and 'io.github.takattowo.usercabridge.trustreports' in item
-                         and 'android:grantUriPermissions' in item and '=true' in item
-                         for item in providers)
-              assert any('XposedProvider' in item
-                         and 'android.permission.INTERACT_ACROSS_USERS' in item
-                         for item in providers)
+              trust_provider = next((item for item in providers
+                                     if 'TrustReportProvider' in item), None)
+              assert trust_provider is not None, f'TrustReportProvider missing: {providers!r}'
+              assert 'io.github.takattowo.usercabridge.trustreports' in trust_provider, trust_provider
+              assert 'android:grantUriPermissions' in trust_provider and '=true' in trust_provider, trust_provider
+              xposed_provider = next((item for item in providers
+                                      if 'XposedProvider' in item), None)
+              assert xposed_provider is not None, f'XposedProvider missing: {providers!r}'
+              assert 'android.permission.INTERACT_ACROSS_USERS' in xposed_provider, xposed_provider
               assert 'android.intent.action.MAIN' in manifest
               assert 'de.robv.android.xposed.category.MODULE_SETTINGS' in manifest
               assert 'android.intent.category.LAUNCHER' not in manifest
